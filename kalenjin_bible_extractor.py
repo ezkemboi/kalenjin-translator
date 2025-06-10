@@ -1,23 +1,31 @@
 import pdfplumber
 import json
 import os
-from typing import Dict, List, Optional, Tuple
+from dotenv import load_dotenv
+from typing import Optional, Tuple
 from tqdm import tqdm
 import re
 import logging
 from kln_book_pages_ranges import BOOK_PAGE_RANGES
 from book_mappings import BOOK_MAPPINGS
 
+# Load environment variables
+load_dotenv()
+
+KLN_BIBLE_PATH = os.getenv("KLN_BIBLE_PATH")
+KLN_BIBLE_OUTPUT_DIR = os.getenv("KLN_BIBLE_OUTPUT_DIR")
+KLN_BIBLE_LOG_FILE = os.getenv("KLN_BIBLE_LOG_FILE") or "kalenjin_bible_extraction.log" # check how to get this to an s3 file for logging
+
 # Set up logging
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
-    handlers=[logging.FileHandler('kalenjin_extraction.log'),
+    handlers=[logging.FileHandler(KLN_BIBLE_LOG_FILE),
               logging.StreamHandler()]
 )
 
 class KalenjinBibleExtractor:
-    def __init__(self, pdf_path: str = "kln_bible.pdf", output_dir: str = "extracts"):
+    def __init__(self, pdf_path: str = KLN_BIBLE_PATH, output_dir: str = KLN_BIBLE_OUTPUT_DIR):
         self.pdf_path = pdf_path
         self.output_dir = output_dir
         os.makedirs(output_dir, exist_ok=True)
@@ -91,7 +99,14 @@ class KalenjinBibleExtractor:
                 page = pdf.pages[page_num]
                 text = page.extract_text()
                 if not text:
+                    logging.warning(f"Empty text on page {page_num + 1}")
                     continue
+
+                # Debug: Log first few lines of each page for failing books
+                if book in ["Komong'u", "Ng'atutik", "Tesalonikaek 2"]:
+                    lines = text.split('\n')
+                    preview = '\n'.join(lines[:5])
+                    logging.info(f"Page {page_num + 1} preview for {book}:\n{preview}")
 
                 lines = text.split('\n')
                 i = 0
@@ -106,6 +121,10 @@ class KalenjinBibleExtractor:
                     # Check for chapter header
                     chapter_num = self.is_chapter_header(line, book)
                     if chapter_num is not None:
+                        # Debug: Log chapter headers found for failing books
+                        if book in ["Komong'u", "Ng'atutik", "Tesalonikaek 2"]:
+                            logging.info(f"Found chapter header in {book}: {line} -> {chapter_num}")
+                        
                         # Save previous verse if exists
                         if current_chapter and current_verse and verse_text_lines:
                             clean_text = self.clean_text(' '.join(verse_text_lines))
@@ -131,6 +150,10 @@ class KalenjinBibleExtractor:
                     verse_info = self.extract_verse(line)
                     if verse_info and current_chapter:
                         verse_num, verse_text = verse_info
+                        
+                        # Debug: Log verses found for failing books
+                        if book in ["Komong'u", "Ng'atutik", "Tesalonikaek 2"]:
+                            logging.info(f"Found verse in {book}: {verse_num} -> {verse_text[:50]}...")
                         
                         # Validate verse sequence
                         if verse_num <= last_verse_num and verse_num != 1:
@@ -195,6 +218,17 @@ class KalenjinBibleExtractor:
             logging.info(f"Found chapters for {book}: {chapters}")
         else:
             logging.warning(f"No verses found for {book}")
+            # Debug: Log total lines processed for failing books
+            # will need to debug on this later, it's not working as expected
+            if book in ["Komong'u", "Ng'atutik", "Tesalonikaek 2"]:
+                with pdfplumber.open(self.pdf_path) as pdf:
+                    total_lines = 0
+                    for page_num in range(start_page - 1, end_page):
+                        page = pdf.pages[page_num]
+                        text = page.extract_text()
+                        if text:
+                            total_lines += len(text.split('\n'))
+                    logging.warning(f"Total lines processed for {book}: {total_lines}")
 
     def process_all_books(self):
         """Process all books from the PDF using predefined page ranges."""
@@ -205,11 +239,18 @@ class KalenjinBibleExtractor:
                 logging.info(f"Removed old file: {file}")
 
         # Process all books
+        processed_count = 0
         for book, (start_page, end_page) in BOOK_PAGE_RANGES.items():
             # Skip page 1 and any pages beyond our defined ranges
             if start_page > 1:
                 self.process_book(book, start_page, end_page)
-                logging.info(f"Completed processing {book}")
+                processed_count += 1
+                logging.info(f"Completed processing {book} ({processed_count} books processed so far)")
+
+        logging.info(f"Total books processed: {processed_count}")
+        logging.info(f"Expected books: {len(BOOK_PAGE_RANGES)}")
+        if processed_count != len(BOOK_PAGE_RANGES):
+            logging.warning(f"Missing {len(BOOK_PAGE_RANGES) - processed_count} books!")
 
 if __name__ == "__main__":
     extractor = KalenjinBibleExtractor()

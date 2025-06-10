@@ -1,1 +1,11 @@
-/content
+/extracts
+
+*.log
+.env
+# Avoid sending these files to the repo
+*.pdf
+*.docx
+*.doc
+*.json
+*.csv
+# end of avoid sending these files to the repo
