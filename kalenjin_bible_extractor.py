@@ -24,17 +24,21 @@ class KalenjinBibleExtractor:
 
     def is_chapter_header(self, line: str, book_name: str) -> Optional[int]:
         """Check if line is a chapter header and return chapter number if it is."""
-        # Check for patterns like "Taunet 1" or just "1"
+        # Only consider lines that start with the book name followed by a number
+        # e.g., "Taunet 50" or "Taunet50"
         patterns = [
-            rf"^{book_name}\s+(\d+)\s*$",  # e.g., "Taunet 1"
-            r"^\s*(\d+)\s*$"  # Just a number
+            rf"^{book_name}\s*(\d+)\s*$",  # e.g., "Taunet 1" or "Taunet1"
+            rf"^{book_name}\s+(\d+)\s+.*$"  # e.g., "Taunet 1 Some Title"
         ]
         
         for pattern in patterns:
             match = re.match(pattern, line.strip())
             if match:
                 try:
-                    return int(match.group(1))
+                    chapter_num = int(match.group(1))
+                    # Additional validation: chapter numbers should be reasonable
+                    if 1 <= chapter_num <= 150:  # assuming no biblical book has more than 150 chapters
+                        return chapter_num
                 except ValueError:
                     continue
         return None
@@ -42,14 +46,16 @@ class KalenjinBibleExtractor:
     def extract_verse(self, line: str) -> Optional[Tuple[int, str]]:
         """Extract verse number and text from a line."""
         # Match lines starting with a number followed by text
-        match = re.match(r'^(\d+)(.+)$', line.strip())
+        match = re.match(r'^(\d+)([^0-9].+)$', line.strip())
         if match:
             try:
                 verse_num = int(match.group(1))
                 verse_text = match.group(2).strip()
-                return verse_num, verse_text
+                # Additional validation: verse numbers should be reasonable
+                if 1 <= verse_num <= 200:  # assuming no verse number exceeds 200
+                    return verse_num, verse_text
             except ValueError:
-                return None
+                pass
         return None
 
     def process_book(self, book: str, start_page: int, end_page: int):
@@ -60,6 +66,7 @@ class KalenjinBibleExtractor:
         current_chapter = None
         current_verse = None
         verse_text_lines = []
+        last_verse_num = 0  # Track last verse number to help with continuity
         
         with pdfplumber.open(self.pdf_path) as pdf:
             for page_num in tqdm(range(start_page - 1, end_page), desc=f"Processing {book}"):
@@ -73,8 +80,8 @@ class KalenjinBibleExtractor:
                 while i < len(lines):
                     line = lines[i].strip()
                     
-                    # Skip empty lines
-                    if not line:
+                    # Skip empty lines and copyright notices
+                    if not line or '©' in line:
                         i += 1
                         continue
 
@@ -96,12 +103,22 @@ class KalenjinBibleExtractor:
 
                         current_chapter = chapter_num
                         current_verse = None
+                        last_verse_num = 0
                         i += 1
                         continue
 
                     # Try to extract verse
                     verse_info = self.extract_verse(line)
                     if verse_info and current_chapter:
+                        verse_num, verse_text = verse_info
+                        
+                        # Validate verse sequence
+                        if verse_num <= last_verse_num and verse_num != 1:
+                            # This might be a page number or other number, not a verse
+                            verse_text_lines.append(line)
+                            i += 1
+                            continue
+                            
                         # Save previous verse if exists
                         if current_verse and verse_text_lines:
                             verses.append({
@@ -115,12 +132,12 @@ class KalenjinBibleExtractor:
                             })
                             verse_text_lines = []
 
-                        verse_num, verse_text = verse_info
                         current_verse = verse_num
+                        last_verse_num = verse_num
                         verse_text_lines = [verse_text]
                     elif current_verse:  # Continuation of previous verse
-                        # Only add line if it doesn't look like a new verse
-                        if not re.match(r'^\d+\s+[A-Za-z]', line):
+                        # Only add line if it doesn't look like a new verse or chapter header
+                        if not re.match(rf'^({book}|\d+)\s+\d+', line):
                             verse_text_lines.append(line)
 
                     i += 1
@@ -138,10 +155,17 @@ class KalenjinBibleExtractor:
             })
 
         if verses:
+            # Sort verses by chapter and verse number for consistency
+            verses.sort(key=lambda x: (x['chapter'], x['verse']))
+            
             output_file = os.path.join(self.output_dir, f"{book.lower().replace(' ', '_')}.json")
             with open(output_file, 'w', encoding='utf-8') as f:
                 json.dump(verses, f, ensure_ascii=False, indent=2)
             logging.info(f"Saved {len(verses)} verses to {output_file}")
+            
+            # Log chapter statistics
+            chapters = sorted(set(v['chapter'] for v in verses))
+            logging.info(f"Found chapters for {book}: {chapters}")
         else:
             logging.warning(f"No verses found for {book}")
 
