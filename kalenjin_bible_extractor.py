@@ -21,6 +21,22 @@ class KalenjinBibleExtractor:
         self.pdf_path = pdf_path
         self.output_dir = output_dir
         os.makedirs(output_dir, exist_ok=True)
+        
+        # Common patterns to clean from text
+        self.footer_patterns = [
+            r'Bukuit Ne Tilil\s*\d+',  # Matches "Bukuit Ne Tilil" followed by numbers
+            r'©.*$',  # Copyright notices
+            r'\d+$'   # Just numbers at the end of lines (likely page numbers)
+        ]
+        self.footer_regex = re.compile('|'.join(self.footer_patterns))
+
+    def clean_text(self, text: str) -> str:
+        """Clean text by removing footers, page numbers, and other artifacts."""
+        # Remove footer patterns
+        text = self.footer_regex.sub('', text)
+        # Remove excessive whitespace
+        text = ' '.join(text.split())
+        return text.strip()
 
     def is_chapter_header(self, line: str, book_name: str) -> Optional[int]:
         """Check if line is a chapter header and return chapter number if it is."""
@@ -51,8 +67,10 @@ class KalenjinBibleExtractor:
             try:
                 verse_num = int(match.group(1))
                 verse_text = match.group(2).strip()
+                # Clean the verse text
+                verse_text = self.clean_text(verse_text)
                 # Additional validation: verse numbers should be reasonable
-                if 1 <= verse_num <= 200:  # assuming no verse number exceeds 200
+                if 1 <= verse_num <= 200 and verse_text:  # assuming no verse number exceeds 200
                     return verse_num, verse_text
             except ValueError:
                 pass
@@ -81,7 +99,7 @@ class KalenjinBibleExtractor:
                     line = lines[i].strip()
                     
                     # Skip empty lines and copyright notices
-                    if not line or '©' in line:
+                    if not line or '©' in line or 'Bukuit Ne Tilil' in line:
                         i += 1
                         continue
 
@@ -90,15 +108,17 @@ class KalenjinBibleExtractor:
                     if chapter_num is not None:
                         # Save previous verse if exists
                         if current_chapter and current_verse and verse_text_lines:
-                            verses.append({
-                                "id": f"{book}#{current_chapter}#{current_verse}",
-                                "book_kln": book,
-                                "book_en": BOOK_MAPPINGS.get(book, ""),
-                                "chapter": current_chapter,
-                                "verse": current_verse,
-                                "text_en": "",
-                                "text_kln": " ".join(verse_text_lines).strip()
-                            })
+                            clean_text = self.clean_text(' '.join(verse_text_lines))
+                            if clean_text:  # Only save if there's actual content
+                                verses.append({
+                                    "id": f"{book}#{current_chapter}#{current_verse}",
+                                    "book_kln": book,
+                                    "book_en": BOOK_MAPPINGS.get(book, ""),
+                                    "chapter": current_chapter,
+                                    "verse": current_verse,
+                                    "text_en": "",
+                                    "text_kln": clean_text
+                                })
                             verse_text_lines = []
 
                         current_chapter = chapter_num
@@ -115,44 +135,51 @@ class KalenjinBibleExtractor:
                         # Validate verse sequence
                         if verse_num <= last_verse_num and verse_num != 1:
                             # This might be a page number or other number, not a verse
-                            verse_text_lines.append(line)
+                            if not any(pattern in line for pattern in ['Bukuit Ne Tilil', '©']):
+                                verse_text_lines.append(line)
                             i += 1
                             continue
                             
                         # Save previous verse if exists
                         if current_verse and verse_text_lines:
-                            verses.append({
-                                "id": f"{book}#{current_chapter}#{current_verse}",
-                                "book_kln": book,
-                                "book_en": BOOK_MAPPINGS.get(book, ""),
-                                "chapter": current_chapter,
-                                "verse": current_verse,
-                                "text_en": "",
-                                "text_kln": " ".join(verse_text_lines).strip()
-                            })
+                            clean_text = self.clean_text(' '.join(verse_text_lines))
+                            if clean_text:  # Only save if there's actual content
+                                verses.append({
+                                    "id": f"{book}#{current_chapter}#{current_verse}",
+                                    "book_kln": book,
+                                    "book_en": BOOK_MAPPINGS.get(book, ""),
+                                    "chapter": current_chapter,
+                                    "verse": current_verse,
+                                    "text_en": "",
+                                    "text_kln": clean_text
+                                })
                             verse_text_lines = []
 
                         current_verse = verse_num
                         last_verse_num = verse_num
                         verse_text_lines = [verse_text]
                     elif current_verse:  # Continuation of previous verse
-                        # Only add line if it doesn't look like a new verse or chapter header
-                        if not re.match(rf'^({book}|\d+)\s+\d+', line):
-                            verse_text_lines.append(line)
+                        # Skip footer lines
+                        if not any(pattern in line for pattern in ['Bukuit Ne Tilil', '©']):
+                            # Only add line if it doesn't look like a new verse or chapter header
+                            if not re.match(rf'^({book}|\d+)\s+\d+', line):
+                                verse_text_lines.append(line)
 
                     i += 1
 
         # Save last verse if pending
         if current_chapter and current_verse and verse_text_lines:
-            verses.append({
-                "id": f"{book}#{current_chapter}#{current_verse}",
-                "book_kln": book,
-                "book_en": BOOK_MAPPINGS.get(book, ""),
-                "chapter": current_chapter,
-                "verse": current_verse,
-                "text_en": "",
-                "text_kln": " ".join(verse_text_lines).strip()
-            })
+            clean_text = self.clean_text(' '.join(verse_text_lines))
+            if clean_text:  # Only save if there's actual content
+                verses.append({
+                    "id": f"{book}#{current_chapter}#{current_verse}",
+                    "book_kln": book,
+                    "book_en": BOOK_MAPPINGS.get(book, ""),
+                    "chapter": current_chapter,
+                    "verse": current_verse,
+                    "text_en": "",
+                    "text_kln": clean_text
+                })
 
         if verses:
             # Sort verses by chapter and verse number for consistency
