@@ -1,4 +1,6 @@
 /extracts
+/en_extracts
+/cleaned_extracts
 
 *.log
 .env

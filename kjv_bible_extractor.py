@@ -17,7 +17,7 @@ logging.basicConfig(
 )
 
 class KJVBibleExtractor:
-    def __init__(self, output_dir: str = "extracts"):
+    def __init__(self, output_dir: str = os.getenv("EN_BIBLE_OUTPUT_DIR")):
         self.url = os.getenv("EN_BIBLE_URL")
         self.output_dir = output_dir
         os.makedirs(output_dir, exist_ok=True)

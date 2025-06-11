@@ -61,3 +61,8 @@ The script will create a `bible_json` directory containing separate JSON files f
 Komong'u (Exodus)
 Ng'atutik (Deuteronomy)
 Tesalonikaek 2 (2 Thessalonians)
+
+# Failed cases when combining in English
+# Acts (boisionikab_che_kiyoktoi.json) - Missing English file
+# Job (job.json) - Missing both English and Kalenjin files
+# Ephesians (epesoek.json) - Missing English file
