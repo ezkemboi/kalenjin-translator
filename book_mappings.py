@@ -69,3 +69,6 @@ BOOK_MAPPINGS = {
     "Ng’and’utiet": "Revelation"
 }
 
+# Mapping of English book names to Kalenjin book names (reversed mapping)
+EN_BOOK_MAPPING = {v: k for k, v in BOOK_MAPPINGS.items()}
+
