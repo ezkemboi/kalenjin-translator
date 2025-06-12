@@ -1,9 +1,12 @@
 /extracts
 /en_extracts
 /cleaned_extracts
+/files
+/kalenjin-translator
 
 *.log
 .env
+.venv
 # Avoid sending these files to the repo
 *.pdf
 *.docx

@@ -68,3 +68,6 @@ The script will create a `bible_json` directory containing separate JSON files f
 - Acts (boisionikab_che_kiyoktoi.json) - Missing English file
 - Job (job.json) - Missing both English and Kalenjin files
 - Ephesians (epesoek.json) - Missing English file
+
+## Research to do
+- https://link.springer.com/rwe/10.1007/978-94-024-2068-5_197
