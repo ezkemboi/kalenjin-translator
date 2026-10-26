@@ -22,4 +22,11 @@ __pycache__/
 *.pycache/
 
 .DS_Store
-Thumbs.db
+Thumbs.db/kalenjin-translator-en-kln
+/model/data/dataset_repo
+model/data/progress_*.txt
+/model/data/collected
+.streamlit/secrets.toml
+__pycache__/
+*.pyc
+.DS_Store

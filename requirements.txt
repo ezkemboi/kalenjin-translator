@@ -7,10 +7,11 @@ pandas==2.2.2
 
 # Machine Learning Core Frameworks
 transformers==4.34.0
-torch==2.1.0
+torch==2.5.1
 datasets==2.14.0
 accelerate==0.21.0
 sentencepiece==0.1.99
 pyarrow==14.0.2
 python-dotenv==1.0.1
 streamlit>=1.30
+requests>=2.31
