@@ -19,6 +19,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--direction", choices=["kln-en", "en-kln"], default="kln-en")
 parser.add_argument("--chunk", type=int, default=2000)
 parser.add_argument("--grad-accum", type=int, default=2)
+parser.add_argument("--data-dir", default="/content/kalenjin-datasets", help="folder holding train.csv and validation.csv (searched recursively)")
 parser.add_argument("--cpu", action="store_true")
 parser.add_argument("--reset", action="store_true")
 args, _ = parser.parse_known_args()
@@ -34,10 +35,18 @@ subprocess.check_call([sys.executable, "-m", "pip", "install", "-q", "transforme
 
 Path("model/data").mkdir(parents=True, exist_ok=True)
 for name in ("train.csv", "validation.csv"):
-    src = DRIVE / name
-    if not src.exists():
-        sys.exit(f"Missing {src}. Upload train.csv and validation.csv to MyDrive/kalenjin/ first.")
-    shutil.copy(src, f"model/data/{name}")
+    dest = Path("model/data") / name
+    if dest.exists():
+        continue
+    found = None
+    for root in (Path(args.data_dir), DRIVE):
+        found = next(iter(sorted(root.rglob(name))), None) if root.exists() else None
+        if found:
+            break
+    if not found:
+        sys.exit(f"Could not find {name} in {args.data_dir} or {DRIVE}.")
+    print(f"Using {found}")
+    shutil.copy(found, dest)
 
 # Save the model and the progress file straight to Drive through symlinks
 model_dir = "kalenjin-translator" if args.direction == "kln-en" else "kalenjin-translator-en-kln"
