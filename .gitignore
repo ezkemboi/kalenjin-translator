@@ -14,3 +14,12 @@
 *.json
 *.csv
 # end of avoid sending these files to the repo
+
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.pycache/
+
+.DS_Store
+Thumbs.db
