@@ -17,6 +17,9 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--direction", choices=["kln-en", "en-kln"], default="kln-en")
 parser.add_argument("--epochs", type=float, default=3)
 parser.add_argument("--max-samples", type=int, default=None, help="use a small subset for a quick test run")
+parser.add_argument("--batch-size", type=int, default=2, help="per-device batch size; lower it if memory runs out")
+parser.add_argument("--grad-accum", type=int, default=4, help="gradient accumulation steps")
+parser.add_argument("--train-embeddings", action="store_true", help="also train the large shared embedding matrix (needs much more memory)")
 cli = parser.parse_args()
 
 # NLLB has no Kalenjin code; a Latin-script code (Swahili) stands in for Kalenjin
@@ -37,6 +40,9 @@ train_ds, val_ds = Dataset.from_pandas(train_df), Dataset.from_pandas(val_df)
 # Step 2: Load base model and tokenizer
 tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME, src_lang=SRC_LANG, tgt_lang=TGT_LANG)
 model = AutoModelForSeq2SeqLM.from_pretrained(MODEL_NAME)
+if not cli.train_embeddings:
+    # The 256k-token embedding matrix (tied to the output layer) dominates memory
+    model.get_input_embeddings().weight.requires_grad = False
 
 # Step 3: Tokenize (padding is handled per batch by the data collator)
 def preprocess(batch):
@@ -55,8 +61,9 @@ args = Seq2SeqTrainingArguments(
     output_dir=OUTPUT_DIR,
     evaluation_strategy="epoch",
     learning_rate=2e-5,
-    per_device_train_batch_size=8,
-    per_device_eval_batch_size=8,
+    per_device_train_batch_size=cli.batch_size,
+    gradient_accumulation_steps=cli.grad_accum,
+    per_device_eval_batch_size=cli.batch_size,
     num_train_epochs=cli.epochs,
     weight_decay=0.01,
     save_total_limit=2,

@@ -12,7 +12,7 @@ BOOK_PAGE_RANGES = {
     "Samuel 2": (535, 582),  # 2 Samuel
     "Laitorinik 1": (583, 639),  # 1 Kings
     "Laitorinik 2": (640, 692),  # 2 Kings
-    "Ateptab Betusiek 1 ": (693, 748),  # 1 Chronicles
+    "Ateptab Betusiek 1": (693, 748),  # 1 Chronicles
     "Ateptab Betusiek 2": (749, 810),  # 2 Chronicles
     "Esra": (811, 829),  # Ezra
     "Neemia": (830, 856),  # Nehemiah
@@ -53,7 +53,7 @@ BOOK_PAGE_RANGES = {
     "Pilipik": (1903, 1909),  # Philippians
     "Kolosaik": (1910, 1916),  # Colossians
     "Tesalonikek 1": (1917, 1922),  # 1 Thessalonians
-    "Tesalonikaek 2": (1923, 1926),  # 2 Thessalonians  
+    "Tesalonikek 2": (1923, 1926),  # 2 Thessalonians  
     "Timoteo 1": (1927, 1934),  # 1 Timothy
     "Timoteo 2": (1935, 1939),  # 2 Timothy
     "Tito": (1940, 1943),  # Titus

@@ -96,11 +96,10 @@ Only needed if you don't already have `extracts/`, `en_extracts/` and `cleaned_e
 ```bash
 python data-collections/kalenjin_bible_extractor.py
 python data-collections/kjv_bible_extractor.py
-python data-collections/combine_bible.py     # run from the PARENT of the repo folder, see note
+python data-collections/combine_bible.py
 python data-collections/prepare_train_data.py
 ```
 
-> Note: `combine_bible.py` currently uses paths like `marakwet-ai/extracts`, so run it from the directory that *contains* the repo folder (e.g. `python marakwet-ai/data-collections/combine_bible.py`).
 
 `prepare_train_data.py` also replaces the curly apostrophe `’` with `'`, because the NLLB tokenizer turns `’` into `<unk>` (very common in Kalenjin, e.g. `ng'alek`). Check tokenization any time with:
 

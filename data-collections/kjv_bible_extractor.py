@@ -94,6 +94,15 @@ class KJVBibleExtractor:
             "Revelation": {"abbrev": "re", "kln": "Ng’and’utiet"}
         }
 
+    # The source JSON uses Portuguese abbreviations for some books
+    ALT_ABBREVS = {
+        "jud": "jz", "1kgs": "1rs", "2kgs": "2rs", "1ch": "1cr", "2ch": "2cr",
+        "ezr": "ed", "jb": "jó", "ps": "sl", "prv": "pv", "so": "ct",
+        "ho": "os", "mi": "mq", "hk": "hc", "zp": "sf", "hg": "ag",
+        "mk": "mc", "lk": "lc", "ac": "atos", "ep": "ef", "ph": "fp",
+        "phm": "fm", "jm": "tg", "re": "ap",
+    }
+
     def fetch_bible_data(self) -> List[Dict]:
         """Fetch Bible data from the URL."""
         logging.info(f"Fetching Bible data from {self.url}")
@@ -177,7 +186,8 @@ class KJVBibleExtractor:
             # Find the book in the data
             book_data = None
             for book in bible_data:
-                if book.get("abbrev", "").lower() == book_info["abbrev"]:
+                wanted = {book_info["abbrev"], self.ALT_ABBREVS.get(book_info["abbrev"], "")}
+                if book.get("abbrev", "").lower() in wanted:
                     book_data = book
                     break
 

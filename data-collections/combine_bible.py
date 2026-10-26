@@ -68,9 +68,9 @@ def combine_bible_books(en_file, kln_file, output_file):
 
 def process_all_books():
     # Get list of all Kalenjin files
-    kln_dir = Path('marakwet-ai/extracts')
-    en_dir = Path('marakwet-ai/en_extracts')
-    output_dir = Path('marakwet-ai/cleaned_extracts')
+    kln_dir = Path('extracts')
+    en_dir = Path('en_extracts')
+    output_dir = Path('cleaned_extracts')
     
     # Create output directory if it doesn't exist
     output_dir.mkdir(exist_ok=True)

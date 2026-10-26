@@ -50,6 +50,9 @@ class KalenjinBibleExtractor:
         """Check if line is a chapter header and return chapter number if it is."""
         # Only consider lines that start with the book name followed by a number
         # e.g., "Taunet 50" or "Taunet50"
+        # The PDF uses the curly apostrophe (U+2019); config names use the straight one
+        line = line.replace("\u2019", "'")
+        book_name = re.escape(book_name.replace("\u2019", "'"))
         patterns = [
             rf"^{book_name}\s*(\d+)\s*$",  # e.g., "Taunet 1" or "Taunet1"
             rf"^{book_name}\s+(\d+)\s+.*$"  # e.g., "Taunet 1 Some Title"
@@ -103,7 +106,7 @@ class KalenjinBibleExtractor:
                     continue
 
                 # Debug: Log first few lines of each page for failing books
-                if book in ["Komong'u", "Ng'atutik", "Tesalonikaek 2"]:
+                if book in ["Komong'u", "Ng'atutik", "Tesalonikek 2"]:
                     lines = text.split('\n')
                     preview = '\n'.join(lines[:5])
                     logging.info(f"Page {page_num + 1} preview for {book}:\n{preview}")
@@ -122,7 +125,7 @@ class KalenjinBibleExtractor:
                     chapter_num = self.is_chapter_header(line, book)
                     if chapter_num is not None:
                         # Debug: Log chapter headers found for failing books
-                        if book in ["Komong'u", "Ng'atutik", "Tesalonikaek 2"]:
+                        if book in ["Komong'u", "Ng'atutik", "Tesalonikek 2"]:
                             logging.info(f"Found chapter header in {book}: {line} -> {chapter_num}")
                         
                         # Save previous verse if exists
@@ -152,7 +155,7 @@ class KalenjinBibleExtractor:
                         verse_num, verse_text = verse_info
                         
                         # Debug: Log verses found for failing books
-                        if book in ["Komong'u", "Ng'atutik", "Tesalonikaek 2"]:
+                        if book in ["Komong'u", "Ng'atutik", "Tesalonikek 2"]:
                             logging.info(f"Found verse in {book}: {verse_num} -> {verse_text[:50]}...")
                         
                         # Validate verse sequence
@@ -220,7 +223,7 @@ class KalenjinBibleExtractor:
             logging.warning(f"No verses found for {book}")
             # Debug: Log total lines processed for failing books
             # will need to debug on this later, it's not working as expected
-            if book in ["Komong'u", "Ng'atutik", "Tesalonikaek 2"]:
+            if book in ["Komong'u", "Ng'atutik", "Tesalonikek 2"]:
                 with pdfplumber.open(self.pdf_path) as pdf:
                     total_lines = 0
                     for page_num in range(start_page - 1, end_page):
